@@ -84,6 +84,8 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--biz); outli
 }
 .chip small { font-family: var(--f-body); font-weight: 500; font-size: 11px; opacity: .85; letter-spacing: .08em; text-transform: uppercase; margin-right: 6px; }
 .chip.hot { background: #fff; color: var(--red); }
+.chip.flash { animation: flash 2.4s ease-out; }
+@keyframes flash { 0%, 60% { background: #fff; color: var(--red); transform: scale(1.08); } 100% { transform: none; } }
 .chip.warn { background: var(--ink); }
 
 main { overflow: auto; min-height: 0; position: relative; }
@@ -152,7 +154,7 @@ h3 { font-size: 22px; font-weight: 700; }
 .stage { position: relative; border-radius: 12px; overflow: hidden; box-shadow: 0 18px 40px -26px rgba(31,35,41,.6); touch-action: none; }
 .stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 .carry {
-  position: absolute; left: 1.4%; bottom: 2.2%; width: min(36%, 290px); background: var(--card); border-radius: 8px;
+  position: absolute; left: 1.4%; bottom: 2.2%; width: min(30%, 260px); background: var(--card); border-radius: 8px;
   padding: 8px 12px 10px; font-size: clamp(11px, 1.45vw, 15px); box-shadow: 0 8px 22px -12px rgba(0,0,0,.5); border-top: 4px solid var(--ink);
   pointer-events: none;
 }
@@ -160,7 +162,7 @@ h3 { font-size: 22px; font-weight: 700; }
 .carry .it { font-weight: 600; line-height: 1.25; margin-top: 2px; }
 .carry .am { font-family: var(--f-mono); font-weight: 600; margin-top: 2px; }
 .carry .tag { font-size: .8em; color: var(--muted); margin-top: 2px; }
-.toasts { position: absolute; top: 2.5%; left: 50%; transform: translateX(-50%); width: min(70%, 560px); display: grid; gap: 6px; pointer-events: none; }
+.toasts { position: absolute; bottom: 2.2%; left: 50%; transform: translateX(-50%); width: min(34%, 340px); display: grid; gap: 6px; pointer-events: none; }
 .toast { background: var(--ink); color: #fff; border-radius: 8px; padding: 8px 14px; font-size: clamp(12px, 1.5vw, 16px); font-weight: 500; text-align: center; animation: tin .2s ease-out; }
 .toast.ok { background: var(--ok); }
 .toast.bad { background: var(--bad); }
@@ -311,7 +313,7 @@ h3 { font-size: 22px; font-weight: 700; }
         <h2>Dein erster Tag in der Kanzlei</h2>
         <ol class="steps">
           <li><span class="ico">1</span><div><b>Laufen</b>Finger aufs Spielfeld legen und in die Richtung ziehen, in die du laufen willst.</div></li>
-          <li><span class="ico">2</span><div><b>Belege sortieren</b>Hol einen Beleg am Posteingang ab, lies ihn und bring ihn zum richtigen Ordner.</div></li>
+          <li><span class="ico">2</span><div><b>Belege sortieren</b>Hol einen Beleg am Posteingang ab, lies ihn und lauf damit in den richtigen Ordner rechts.</div></li>
           <li><span class="ico">3</span><div><b>Mandanten helfen</b>Ab Level 2 warten Mandanten am Empfang mit Rechenfragen. Lass sie nicht zu lange warten.</div></li>
           <li><span class="ico">!</span><div><b>Aufpassen</b>Weich den Aktenwagen aus. Kaffee macht dich kurz schneller.</div></li>
         </ol>
@@ -2783,10 +2785,13 @@ var qrcode = function() {
   /* ================= World ================= */
   const W = 960, H = 600, WALL = 20, ROUND = 100;
   const PHASES = [
-    { t: 0, name: "Level 1 · Belege sortieren", spawn: 3.1, cart: 120 },
-    { t: 30, name: "Level 2 · Einnahmen & Mandanten", spawn: 2.7, cart: 155 },
-    { t: 65, name: "Level 3 · Endspurt vor der Frist!", spawn: 2.0, cart: 200 }
+    { t: 0, name: "Level 1 · Belege sortieren", spawn: 6.0, cart: 120 },
+    { t: 30, name: "Level 2 · Einnahmen & Mandanten", spawn: 5.4, cart: 150 },
+    { t: 65, name: "Level 3 · Endspurt vor der Frist", spawn: 4.6, cart: 185 }
   ];
+  const INBOX_MAX = 8;
+  const SPEED = 275;
+  const CAT_BAG = [["biz", "biz", "biz", "priv", "priv"], ["biz", "biz", "priv", "priv", "ein", "ein"]];
   const INBOX = { x: 20, y: 240, w: 82, h: 120 };
   const INBOX_ZONE = { x: 102, y: 236, w: 46, h: 128 };
   const SHELVES = [
@@ -2819,7 +2824,8 @@ var qrcode = function() {
       nick, state: "countdown", cd: 3.4, t: 0, score: 0, streak: 0, bestStreak: 0, phase: -1,
       p: { x: 470, y: 225, r: 16, dir: 0, stun: 0, inv: 0, boost: 0, carry: null, pickT: 0, walk: 0, kx: 0, ky: 0 },
       inbox: [], carts: [], mandant: null, coffee: null, floats: [], banner: null,
-      nextSpawn: 2.2, nextMandant: 1e9, nextCoffee: 18, endT: 0, q: null,
+      nextSpawn: 4, nextMandant: 1e9, nextCoffee: 18, endT: 0, q: null,
+      catBag: [], catBagSet: -1, lastOverflowToast: -99,
       decks: { biz: shuffle(BELEGE.biz), priv: shuffle(BELEGE.priv), ein: shuffle(BELEGE.ein) },
       qDeck: shuffle(QGEN.map((_, i) => i)),
       st: { sorted: 0, correct: 0, byCat: { biz: [0, 0], priv: [0, 0], ein: [0, 0] }, qAsked: 0, qCorrect: 0, qTimeSum: 0, bumps: 0, overflow: 0, mLeft: 0 }
@@ -2894,17 +2900,26 @@ var qrcode = function() {
     G.phase = i;
     const ph = PHASES[i];
     G.carts.forEach((c) => { c.sp = ph.cart; });
-    if (i === 1) { SHELVES[2].open = true; G.nextMandant = G.t + 1.5; }
-    if (i === 2) G.carts.push({ axis: "y", x: 540, y: 160, w: 40, h: 72, min: 150, max: 460, dir: 1, sp: ph.cart * 0.8 });
-    G.banner = { txt: ph.name, t: 2.0 };
+    if (i === 1) {
+      SHELVES[2].open = true; G.nextMandant = G.t + 4;
+      if (G.inbox.length < INBOX_MAX) G.inbox.unshift(drawFromDeck("ein"));
+      else G.inbox[0] = drawFromDeck("ein");
+    }
+    if (i === 2) {
+      G.carts.push({ axis: "y", x: 540, y: 160, w: 40, h: 72, min: 150, max: 460, dir: 1, sp: ph.cart * 0.8 });
+      if (G.inbox.length < INBOX_MAX) G.inbox.splice(Math.min(1, G.inbox.length), 0, drawFromDeck("ein"));
+    }
+    if (i > 0) G.banner = { txt: ph.name, t: 2.2, big: false };
     $("hudLevel").textContent = String(i + 1);
+    const chip = $("hudLevel").parentElement;
+    chip.classList.remove("flash"); void chip.offsetWidth; chip.classList.add("flash");
   }
   function floatTxt(x, y, txt, col) { G.floats.push({ x, y, txt, col, t: 1.1 }); }
   function toast(msg, kind, ms) {
     const box = $("toasts");
     const el = document.createElement("div"); el.className = "toast" + (kind ? " " + kind : ""); el.textContent = msg;
     box.appendChild(el);
-    while (box.children.length > 2) box.firstChild.remove();
+    while (box.children.length > 1) box.firstChild.remove();
     setTimeout(() => el.remove(), ms || 2200);
   }
   function setCarry(b) {
@@ -2918,16 +2933,21 @@ var qrcode = function() {
     mk("tag", b.f);
     mk("am", eur(b.c));
   }
+  function nextCat() {
+    const set = G.phase === 0 ? 0 : 1;
+    if (!G.catBag.length || G.catBagSet !== set) { G.catBag = shuffle(CAT_BAG[set]); G.catBagSet = set; }
+    return G.catBag.pop();
+  }
   function spawnTick() {
     const ph = PHASES[G.phase];
     if (G.t < G.nextSpawn) return;
-    G.nextSpawn = G.t + ph.spawn * (0.85 + Math.random() * 0.3);
-    const r = Math.random();
-    const cat = G.phase === 0 ? (r < 0.58 ? "biz" : "priv") : (r < 0.42 ? "biz" : r < 0.68 ? "priv" : "ein");
-    if (G.inbox.length >= 6) {
+    // Stapel wächst langsamer, wenn schon viel liegt
+    G.nextSpawn = G.t + ph.spawn * (0.9 + Math.random() * 0.2) + (G.inbox.length >= 4 ? 2.5 : 0);
+    const cat = nextCat();
+    if (G.inbox.length >= INBOX_MAX) {
       G.st.overflow++; G.score = Math.max(0, G.score - 25);
       floatTxt(INBOX.x + 70, INBOX.y - 8, "−25", C.bad);
-      toast("Posteingang voll: Ein Beleg ist verloren gegangen.", "bad");
+      if (G.t - G.lastOverflowToast > 12) { toast("Posteingang voll: Ein Beleg ist verloren gegangen.", "bad"); G.lastOverflowToast = G.t; }
       return;
     }
     pushBeleg(cat);
@@ -2945,7 +2965,7 @@ var qrcode = function() {
       const pts = Math.round(100 * mult) + fast;
       G.score += pts;
       floatTxt(p.x, p.y - 30, "+" + pts, C.ok);
-      if (G.streak > 0 && G.streak % 3 === 0) toast("Serie! Punkte jetzt x" + mult.toString().replace(".", ","), "ok", 1400);
+      if (G.streak > 0 && G.streak % 3 === 0) floatTxt(p.x, p.y - 56, "Serie x" + Math.min(3, 1 + Math.floor(G.streak / 3) * 0.5).toString().replace(".", ","), C.red);
     } else {
       G.streak = 0; G.score = Math.max(0, G.score - 40);
       floatTxt(p.x, p.y - 30, "−40", C.bad);
@@ -3004,7 +3024,7 @@ var qrcode = function() {
     G.t += dt;
     const left = ROUND - G.t;
     if (left <= 0) {
-      G.state = "ending"; G.endT = 1.8; G.banner = { txt: "Feierabend!", t: 2 }; joy = null;
+      G.state = "ending"; G.endT = 1.8; G.banner = { txt: "Feierabend!", t: 2, big: true }; joy = null;
       return;
     }
     const ph = G.t < 30 ? 0 : G.t < 65 ? 1 : 2;
@@ -3012,38 +3032,47 @@ var qrcode = function() {
     spawnTick();
 
     const p = G.p;
+    const px0 = p.x, py0 = p.y;
     p.inv = Math.max(0, p.inv - dt); p.boost = Math.max(0, p.boost - dt);
     if (p.stun > 0) {
       p.stun -= dt;
-      p.x += p.kx * dt; p.y += p.ky * dt; p.kx *= 0.86; p.ky *= 0.86;
+      p.x += p.kx * dt; p.y += p.ky * dt; p.kx *= 0.86; p.ky *= 0.86; p.vx = 0; p.vy = 0;
     } else {
       const v = inputVec();
-      const sp = 245 * (p.boost > 0 ? 1.45 : 1);
-      p.x += v.x * sp * dt; p.y += v.y * sp * dt;
+      const sp = SPEED * (p.boost > 0 ? 1.4 : 1);
+      p.x += v.x * sp * dt; p.y += v.y * sp * dt; p.vx = v.x; p.vy = v.y;
       if (v.x || v.y) { p.dir = Math.atan2(v.y, v.x); p.walk += dt * 10 * Math.hypot(v.x, v.y); }
     }
     resolve(p);
+    const moved = Math.hypot(p.x - px0, p.y - py0) / Math.max(dt, 0.001);
 
     for (const c of G.carts) {
       if (c.axis === "x") { c.x += c.dir * c.sp * dt; if (c.x > c.max) { c.x = c.max; c.dir = -1; } if (c.x < c.min) { c.x = c.min; c.dir = 1; } }
       else { c.y += c.dir * c.sp * dt; if (c.y > c.max) { c.y = c.max; c.dir = -1; } if (c.y < c.min) { c.y = c.min; c.dir = 1; } }
       if (p.inv <= 0 && circleRect(p.x, p.y, p.r, c)) {
         const cx = c.x + c.w / 2, cy = c.y + c.h / 2, dx = p.x - cx, dy = p.y - cy, d = Math.hypot(dx, dy) || 1;
-        p.kx = dx / d * 420; p.ky = dy / d * 420; p.stun = 0.75; p.inv = 1.6;
+        p.kx = dx / d * 320; p.ky = dy / d * 320; p.stun = 0.55; p.inv = 1.6;
         G.st.bumps++;
-        toast("Autsch, Aktenwagen!", "", 1200);
+        floatTxt(p.x, p.y - 34, "Autsch!", C.ink);
       }
     }
 
     if (!p.carry && G.inbox.length && inRect(p.x, p.y, INBOX_ZONE)) {
       p.carry = G.inbox.shift(); p.pickT = G.t; setCarry(p.carry);
     }
-    if (p.carry) for (const s of SHELVES) if (inRect(p.x, p.y, s.zone)) { deliver(s); break; }
+    // Ablegen nur mit Absicht: in den Ordner hineinlaufen (nach rechts) oder kurz davor stehen bleiben.
+    // Wer nur vorbeiläuft oder vom Aktenwagen geschubst wird, legt nichts ab.
+    for (const s of SHELVES) {
+      if (p.carry && inRect(p.x, p.y, s.zone)) {
+        s.dwell = moved < 40 ? (s.dwell || 0) + dt : 0;
+        const intoShelf = p.vx > 0.3 && Math.abs(p.vy) < p.vx * 0.9;
+        if (p.stun <= 0 && (intoShelf || s.dwell >= 0.35)) { s.dwell = 0; deliver(s); break; }
+      } else s.dwell = 0;
+    }
 
     if (G.phase >= 1 && !G.mandant && G.t >= G.nextMandant) {
       const cl = pick(CLIENTS);
       G.mandant = { n: cl.n, col: cl.col, pat: 16, max: 16, a: 0 };
-      toast(cl.n + " wartet am Empfang.", "", 1800);
     }
     if (G.mandant) {
       G.mandant.a = Math.min(1, G.mandant.a + dt * 3);
@@ -3052,7 +3081,7 @@ var qrcode = function() {
       if (G.mandant.pat <= 0) {
         G.st.mLeft++; G.score = Math.max(0, G.score - 30);
         floatTxt(480, 130, "−30", C.bad);
-        toast(G.mandant.n + " ist gegangen. Mandanten nicht so lange warten lassen!", "bad", 2600);
+        toast(G.mandant.n + " ist gegangen, weil niemand kam.", "bad", 2600);
         G.mandant = null; G.nextMandant = G.t + 6;
       }
     }
@@ -3125,14 +3154,14 @@ var qrcode = function() {
     });
 
     // inbox
-    const full = G && G.inbox.length >= 5;
+    const full = G && G.inbox.length >= INBOX_MAX - 2;
     ctx.fillStyle = "rgba(0,0,0,.08)"; rr(INBOX.x + 4, INBOX.y + 6, INBOX.w, INBOX.h, 8); ctx.fill();
     ctx.fillStyle = C.desk; rr(INBOX.x, INBOX.y, INBOX.w, INBOX.h, 8); ctx.fill();
     ctx.strokeStyle = full ? C.bad : C.line; ctx.lineWidth = full ? 3 : 2; ctx.stroke();
     ctx.fillStyle = C.paper2; rr(INBOX.x + 12, INBOX.y + 22, 58, 76, 6); ctx.fill();
     const n = G ? G.inbox.length : 2;
-    for (let k = 0; k < n; k++) {
-      ctx.save(); ctx.translate(INBOX.x + 41, INBOX.y + 86 - k * 9); ctx.rotate((k % 2 ? 1 : -1) * 0.06);
+    for (let k = 0; k < Math.min(n, INBOX_MAX); k++) {
+      ctx.save(); ctx.translate(INBOX.x + 41, INBOX.y + 88 - k * 8); ctx.rotate((k % 2 ? 1 : -1) * 0.06);
       ctx.fillStyle = "#FFFFFF"; ctx.strokeStyle = C.line; ctx.lineWidth = 1; rr(-22, -14, 44, 26, 2); ctx.fill(); ctx.stroke();
       ctx.fillStyle = C.line; ctx.fillRect(-15, -7, 30, 2); ctx.fillRect(-15, -1, 22, 2);
       ctx.restore();
@@ -3237,10 +3266,18 @@ var qrcode = function() {
       // banner
       if (G.banner) {
         ctx.globalAlpha = clamp(G.banner.t / 0.4, 0, 1);
-        ctx.font = "800 40px " + C.fDisp;
-        const tw = ctx.measureText(G.banner.txt).width + 60;
-        ctx.fillStyle = C.ink; rr(W / 2 - tw / 2, 196, tw, 70, 12); ctx.fill();
-        text(G.banner.txt, W / 2, 233, 40, "#FFFFFF", 800, "center", C.fDisp);
+        if (G.banner.big) {
+          ctx.font = "800 40px " + C.fDisp;
+          const tw = ctx.measureText(G.banner.txt).width + 60;
+          ctx.fillStyle = C.ink; rr(W / 2 - tw / 2, 196, tw, 70, 12); ctx.fill();
+          text(G.banner.txt, W / 2, 233, 40, "#FFFFFF", 800, "center", C.fDisp);
+        } else {
+          ctx.font = "700 17px " + C.fDisp;
+          const tw = ctx.measureText(G.banner.txt).width + 28;
+          ctx.globalAlpha *= 0.92;
+          ctx.fillStyle = C.ink; rr(30, 28, tw, 30, 8); ctx.fill();
+          text(G.banner.txt, 44, 44, 17, "#FFFFFF", 700, "left", C.fDisp);
+        }
         ctx.globalAlpha = 1;
       }
       if (G.state === "countdown") {
@@ -3349,24 +3386,25 @@ var qrcode = function() {
     const dec = s.sorted ? s.correct / s.sorted : 0;
     const decAdj = s.sorted < 4 ? dec * (s.sorted / 4) + 0.5 * (1 - s.sorted / 4) * (s.sorted ? 1 : 0.6) : dec;
     let num;
-    if (s.qAsked === 0) num = s.mLeft > 0 ? 0.25 : 0.4;
+    if (s.qAsked === 0) num = s.mLeft > 0 ? 0.3 : 0.45;
     else {
       const acc = s.qCorrect / s.qAsked;
       const avgT = s.qTimeSum / s.qAsked;
       num = acc * 0.82 + clamp(1 - avgT / 12, 0, 1) * 0.18 * acc;
-      num = Math.max(0, num - s.mLeft * 0.08);
+      num = Math.max(0, num - Math.min(0.24, s.mLeft * 0.08));
     }
-    const skill = clamp(s.sorted / 20 - s.bumps * 0.05 - s.overflow * 0.03, 0, 1);
+    // 12 sortierte Belege = volles Tempo; Abzüge sind gedeckelt, damit Geschick nicht auf 0 fällt
+    const skill = clamp(clamp(s.sorted / 12, 0, 1) - Math.min(0.2, s.bumps * 0.04) - Math.min(0.15, s.overflow * 0.03), 0, 1);
     const fit = clamp(0.4 * decAdj + 0.35 * num + 0.25 * skill, 0, 1);
     return { dec: decAdj, num, skill, fit };
   }
   function recommend(e) {
-    if (e.fit >= 0.78 && e.num >= 0.7 && e.dec >= 0.75) return {
+    if (e.fit >= 0.8 && e.num >= 0.75 && e.dec >= 0.8) return {
       title: "Steuerprofi in spe",
       path: "Duales Studium Steuern oder Ausbildung Steuerfachangestellte:r",
       text: "Du triffst sichere Entscheidungen und rechnest schnell im Kopf. Mit Ausbildung oder dualem Studium legst du den Grundstein, um später Steuerberater:in zu werden."
     };
-    if (e.fit >= 0.6) return {
+    if (e.fit >= 0.5) return {
       title: "Das passt zu dir",
       path: "Ausbildung Steuerfachangestellte:r",
       text: "Du hast ein gutes Gespür für Belege und Zahlen. In der dreijährigen Ausbildung lernst du Buchführung, Lohnabrechnung und Steuererklärungen von Grund auf."
@@ -3389,7 +3427,7 @@ var qrcode = function() {
     $("resNick").textContent = G.nick;
     $("resTitle").textContent = R.title;
     $("resFit").textContent = pct + " %";
-    $("resFitLbl").textContent = "Passung Steuerberatung: " + (pct >= 75 ? "passt sehr gut" : pct >= 55 ? "passt gut" : pct >= 40 ? "könnte passen" : "probier's aus");
+    $("resFitLbl").textContent = "Passung Steuerberatung: " + (pct >= 75 ? "passt sehr gut" : pct >= 50 ? "passt gut" : pct >= 35 ? "könnte passen" : "probier's aus");
     $("resFitBar").style.width = pct + "%";
     $("resPath").textContent = R.path;
     $("resText").textContent = R.text;
