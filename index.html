@@ -74,15 +74,15 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--biz); outli
   display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
 }
 .brand { font-family: var(--f-display); font-weight: 800; letter-spacing: .08em; font-size: 20px; }
-.brand span { font-weight: 600; opacity: .8; letter-spacing: .04em; margin-left: 8px; }
-.top .event { font-size: 13px; opacity: .85; text-transform: uppercase; letter-spacing: .1em; }
+.brand span { font-weight: 600; letter-spacing: .04em; margin-left: 8px; }
+.top .event { font-size: 13px; color: #fff; text-transform: uppercase; letter-spacing: .1em; }
 .top .spacer { flex: 1; }
 .hud { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .chip {
   font-family: var(--f-mono); font-weight: 600; font-variant-numeric: tabular-nums;
   background: rgba(255,255,255,.16); border-radius: 999px; padding: 5px 12px; font-size: 16px; text-align: center; white-space: nowrap;
 }
-.chip small { font-family: var(--f-body); font-weight: 500; font-size: 11px; opacity: .85; letter-spacing: .08em; text-transform: uppercase; margin-right: 6px; }
+.chip small { font-family: var(--f-body); font-weight: 500; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; margin-right: 6px; }
 .chip.hot { background: #fff; color: var(--red); }
 .chip.flash { animation: flash 2.4s ease-out; }
 @keyframes flash { 0%, 60% { background: #fff; color: var(--red); transform: scale(1.08); } 100% { transform: none; } }
@@ -202,14 +202,15 @@ h3 { font-size: 22px; font-weight: 700; }
 .dim .n small { display: block; font-weight: 400; color: var(--muted); font-size: 13px; }
 .dim .track { height: 10px; background: var(--paper); border-radius: 5px; overflow: hidden; }
 .dim .track i { display: block; height: 100%; background: var(--ink); border-radius: 5px; }
-.dim.top .track i { background: var(--red); }
+.dim.best .track i { background: var(--red); }
+.dim.best .n { color: var(--red); }
 .dim .v { font-family: var(--f-mono); font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
 .disc { font-size: 12px; color: var(--muted); margin-top: 14px; }
 .side { display: grid; gap: 16px; }
 .scorebox { background: var(--red); color: #fff; border-radius: 14px; padding: 20px 22px; }
 .scorebox .big { font-family: var(--f-mono); font-weight: 600; font-size: 54px; line-height: 1; font-variant-numeric: tabular-nums; }
 .scorebox .rank { font-family: var(--f-display); font-weight: 700; font-size: 24px; margin-top: 8px; }
-.scorebox .note { font-size: 14px; opacity: .9; margin-top: 4px; }
+.scorebox .note { font-size: 14px; color: #fff; margin-top: 4px; }
 .qrbox { background: var(--card); border-radius: 14px; padding: 18px; display: grid; grid-template-columns: 132px minmax(0,1fr); gap: 16px; align-items: center; }
 .qrbox .qr { width: 132px; height: 132px; max-width: 100%; }
 .qrbox .qr svg { width: 100%; height: 100%; display: block; }
@@ -3426,7 +3427,7 @@ var qrcode = function() {
     const pct = Math.round(e.fit * 100);
     $("resNick").textContent = G.nick;
     $("resTitle").textContent = R.title;
-    $("resFit").textContent = pct + " %";
+    $("resFit").textContent = pct + "\u202f%";
     $("resFitLbl").textContent = "Passung Steuerberatung: " + (pct >= 75 ? "passt sehr gut" : pct >= 50 ? "passt gut" : pct >= 35 ? "könnte passen" : "probier's aus");
     $("resFitBar").style.width = pct + "%";
     $("resPath").textContent = R.path;
@@ -3439,7 +3440,7 @@ var qrcode = function() {
     const top = dims.reduce((a, b) => (b.v > a.v ? b : a));
     const box = $("resDims"); box.innerHTML = "";
     dims.forEach((d) => {
-      const row = document.createElement("div"); row.className = "dim" + (d === top ? " top" : "");
+      const row = document.createElement("div"); row.className = "dim" + (d === top ? " best" : "");
       const n = document.createElement("div"); n.className = "n"; n.textContent = d.n;
       const sm = document.createElement("small"); sm.textContent = d.d; n.appendChild(sm);
       const tr = document.createElement("div"); tr.className = "track"; const i = document.createElement("i"); i.style.width = Math.round(d.v * 100) + "%"; tr.appendChild(i);
